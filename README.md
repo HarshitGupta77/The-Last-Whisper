@@ -1,11 +1,9 @@
-# The Last Whisper
+# 👻 The Last Whisper
 
 In the dead of the night, a whisper calls your name,
 a secret word that holds your fate.
 Guess the letters before the silence consumes you,
 or be lost in the shadows forever...
-
----
 
 ## 📖 About
 
@@ -33,8 +31,6 @@ or be lost in the shadows forever...
 - Pygame
 - Requests (for API calls)
 
----
-
 ## 💻 How to Play
 
 1. **Start Screen:** Select your difficulty level by pressing E (Easy), M (Medium), or H (Hard).
@@ -42,8 +38,6 @@ or be lost in the shadows forever...
 3. **Avoid the Hangman:** Too many wrong guesses and the darkness consumes you.
 4. **Win or Lose:** Successfully guess the word to preserve your sanity, or succumb to the shadows.
 5. **Replay:** After each game, choose to try again or exit.
-
----
 
 ## 🕹 Controls
 
@@ -54,4 +48,4 @@ or be lost in the shadows forever...
 
 ---
 
-**👻💀 Enjoy surviving the whispers... if you dare.**
+**💀 Enjoy surviving the whispers... if you dare.**
