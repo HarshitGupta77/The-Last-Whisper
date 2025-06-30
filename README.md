@@ -1,15 +1,13 @@
 # 👻 The Last Whisper
 
-In the dead of the night, a whisper calls your name,
-a secret word that holds your fate.
-Guess the letters before the silence consumes you,
-or be lost in the shadows forever...
+**In the dead of the night, a whisper calls your name,**\
+**a secret word that holds your fate.**\
+**Guess the letters before the silence consumes you,**\
+**or be lost in the shadows forever...**
 
 ## 📖 About
 
 **The Last Whisper** is an immersive Hangman-style horror adventure game built with Python and Pygame. Test your vocabulary and resilience as you attempt to escape the darkness by guessing mysterious words, all set against a haunting backdrop with atmospheric sounds and visuals.
-
----
 
 ## 🔥 Features
 
