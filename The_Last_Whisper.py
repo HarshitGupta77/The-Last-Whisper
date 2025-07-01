@@ -2,6 +2,7 @@ import pygame
 import sys
 import requests
 import random
+import asyncio
 
 pygame.init()
 height=500
@@ -22,7 +23,6 @@ Red=(255,0,0)
 Orange=(255,128,0)
 Green=(0,255,0)
 #Yellow=(255,255,0)
-#Blue=(51,51,255)
 #Light_Blue=(102,255,255)
 
 Msg_font=pygame.font.SysFont("times new roman",21)
@@ -49,11 +49,11 @@ loseScore={"Easy":100, "Medium":250, "Hard":500}
 winmsg=["Sanity Preserved",
         "Soul Fragments Collected",
         "Shadows Repelled",
-        "Echoes Silenced",]
+        "Echoes Silenced"]
 losemsg=["Sanity Drained",
          "Soul Fragments Lost",
          "Darkness Increased",
-         "Echoes Unleashed",]
+         "Echoes Unleashed"]
 
 Background=[pygame.image.load("Background1_.png").convert(),
             pygame.image.load("Background2.png").convert()]
@@ -139,7 +139,6 @@ def start_screen():
                 x,y=pygame.mouse.get_pos()
                 if SoundRect.collidepoint(x,y):
                     volume()
-                    #continue
                 for point in range(len(difficulty_btns)):
                     btnx=difficulty_btns[point][1] - 40
                     btny=difficulty_btns[point][2] - 20
@@ -161,7 +160,6 @@ def redraw_window():
     global Guessed
     global Hangman
     global Limbs
-    #window.fill(Black)
     Bg2=pygame.transform.scale(Background[1], (width,height))
     window.blit(Bg2, (0,0))
 
@@ -217,7 +215,6 @@ def volume():
         BushSound.set_volume(0)
         Screech.set_volume(0)
     else:
-        #if pygame.mixer.music.get_pos() != -1:
         if not pygame.mixer.music.get_busy():
             pygame.mixer.music.play(-1, fade_ms=50)
         pygame.mixer.music.set_volume(0.5)
@@ -227,7 +224,6 @@ def volume():
 def random_word(level):
     global api_failed
 
-    #api = "https://random-word-api.herokuapp.com/word?length=6"
     api = {"Easy":"https://random-word-api.vercel.app/api?words=1&length=5",
            "Medium":"https://random-word-api.vercel.app/api?words=1&length=7",
            "Hard":"https://random-word-api.vercel.app/api?words=1&length=9"}        
@@ -236,7 +232,7 @@ def random_word(level):
         resp=requests.get(api[level], timeout=5)
         data = resp.json()[0].strip()
         if data:
-            print(data)
+            #print(data)
             return data
     
     except:
@@ -247,7 +243,7 @@ def random_word(level):
             words=file.readlines()
             data= random.choice(words).strip()
             file.close()
-            print(data)
+            #print(data)
             return data
         
         except FileNotFoundError:
@@ -518,7 +514,6 @@ while Playing:
                                 Screech.play()
                             end()
                     else:
-                        #print(spaced_out(Word,Guessed))
                         if spaced_out(Word,Guessed).count("_") == 0:
                             pygame.mixer.music.fadeout(1000)
                             end(True)
@@ -542,11 +537,9 @@ while Playing:
                                 Screech.play()
                             end()
                     else:
-                        #print(spaced_out(Word,Guessed))
                         if spaced_out(Word,Guessed).count("_") == 0:
                             pygame.mixer.music.fadeout(1000)
                             end(True)
 
-#print(Buttons)
 pygame.mixer.music.stop()
 pygame.quit() 
