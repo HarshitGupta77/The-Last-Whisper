@@ -1,20 +1,20 @@
 import pygame
 import sys
-import requests
 import random
 import asyncio
+import aiohttp
 
 pygame.init()
 height=500
 width=850
-window=pygame.display.set_mode((width,height))
+window=pygame.display.set_mode((width,height), pygame.SCALED)
 pygame.display.set_caption("The Last Whisper")
 pygame.mixer.init()
 
-BushSound=pygame.mixer.Sound("BushMovement.wav")
-Screech=pygame.mixer.Sound("Screech1.wav")
-WrongAns=pygame.mixer.Sound("Wrong.wav")
-CorrectAns=pygame.mixer.Sound("Correct.wav")
+BushSound=pygame.mixer.Sound("BushMovement.ogg")
+Screech=pygame.mixer.Sound("Screech1.ogg")
+WrongAns=pygame.mixer.Sound("Wrong.ogg")
+CorrectAns=pygame.mixer.Sound("Correct.ogg")
 
 Black=(0,0,0)
 White=(255,255,255)
@@ -22,8 +22,6 @@ Grey=(192,192,192)
 Red=(255,0,0)
 Orange=(255,128,0)
 Green=(0,255,0)
-#Yellow=(255,255,0)
-#Light_Blue=(102,255,255)
 
 Msg_font=pygame.font.SysFont("times new roman",21)
 Subtitle_font=pygame.font.SysFont("times new roman",25)
@@ -69,8 +67,8 @@ ReplayIcon=pygame.transform.scale(pygame.image.load("ReplayIcon.png"),(42,32))
 ReplayIcon2=pygame.transform.scale(pygame.image.load("ReplayIcon2.png"),(42,32))
 
 # Functions
-def start_screen(): 
-    pygame.mixer.music.load("BackgroundMusic_Start.mp3")
+async def start_screen(): 
+    pygame.mixer.music.load("BackgroundMusic_Start.ogg")
     if not Sound:
         pygame.mixer.music.set_volume(0.5)
         pygame.mixer.music.play(-1, fade_ms=1000)
@@ -115,6 +113,7 @@ def start_screen():
                 sys.exit()
 
             if event.type == pygame.KEYDOWN:
+                diff = None
                 if event.key == pygame.K_e:
                     diff = "Easy"
                 elif event.key == pygame.K_m:
@@ -131,7 +130,7 @@ def start_screen():
                     pygame.mixer.music.fadeout(1000)
                     if not Sound:
                         BushSound.play()
-                    pygame.time.delay(1000)
+                    await asyncio.sleep(1)
                         
                     return diff
 
@@ -152,11 +151,11 @@ def start_screen():
                         pygame.mixer.music.fadeout(1000)
                         if not Sound:
                             BushSound.play()
-                        pygame.time.delay(1000)
+                        await asyncio.sleep(1)
                         
                         return difficulty_btns[point][5][:-4]
 
-def redraw_window():
+async def redraw_window():
     global Guessed
     global Hangman
     global Limbs
@@ -221,20 +220,21 @@ def volume():
         BushSound.set_volume(1)
         Screech.set_volume(1)
 
-def random_word(level):
+async def random_word(level):
     global api_failed
 
     api = {"Easy":"https://random-word-api.vercel.app/api?words=1&length=5",
            "Medium":"https://random-word-api.vercel.app/api?words=1&length=7",
-           "Hard":"https://random-word-api.vercel.app/api?words=1&length=9"}        
-
-    try:
-        resp=requests.get(api[level], timeout=5)
-        data = resp.json()[0].strip()
-        if data:
-            #print(data)
-            return data
+           "Hard":"https://random-word-api.vercel.app/api?words=1&length=9"}
     
+    try:
+        async with aiohttp.ClientSession() as session:
+            async with session.get(api[level], timeout=5) as resp:
+                data = await resp.json()
+                data = data[0].strip()
+                if data:
+                    return data
+                    
     except:
         api_failed = True
 
@@ -285,7 +285,7 @@ def button_Press(x,y):
             return Buttons[a][5]
     return None
 
-def end(winner=False):
+async def end(winner=False):
     global Limbs
     global Score
     global difficulty
@@ -299,8 +299,8 @@ def end(winner=False):
                f"+{winScore[difficulty]} {random.choice(winmsg)}"]
     lostText = ["The whisper fades", "and silence falls", "As darkness claims another...", 
                 "The cursed word was: ", Word.upper(), f"-{loseScore[difficulty]} {random.choice(losemsg)}"]
-    redraw_window()
-    pygame.time.delay(2000)
+    await redraw_window()
+    await asyncio.sleep(2)
     Bg3=pygame.transform.scale(Background[1], (width,height))
     window.blit(Bg3, (0,0))
 
@@ -311,7 +311,7 @@ def end(winner=False):
     window.blit(SoundIcon, SoundRect)
 
     if winner == True:
-        pygame.mixer.music.load("BackgroundMusic_Win.mp3")
+        pygame.mixer.music.load("BackgroundMusic_Win.ogg")
         if not Sound:
             pygame.mixer.music.set_volume(0.5)
             pygame.mixer.music.play(-1, fade_ms=1000)
@@ -342,11 +342,11 @@ def end(winner=False):
                     ypos=275+((line-3)*50)
                 window.blit(label3, (width/2 - label3.get_width()/2, ypos))
                 pygame.display.update()
-                pygame.time.delay(30)
-            pygame.time.delay(500)
+                await asyncio.sleep(0.03)
+            await asyncio.sleep(0.5)
 
     else:
-        pygame.mixer.music.load("BackgroundMusic_Lose.mp3")
+        pygame.mixer.music.load("BackgroundMusic_Lose.ogg")
         if not Sound:
             pygame.mixer.music.set_volume(0.5)
             pygame.mixer.music.play(-1, fade_ms=1000)
@@ -377,8 +377,8 @@ def end(winner=False):
                     ypos=245+((line-3)*50)
                 window.blit(label3, (width/2 - label3.get_width()/2, ypos))
                 pygame.display.update()
-                pygame.time.delay(30)
-            pygame.time.delay(500)
+                await asyncio.sleep(0.03)
+            await asyncio.sleep(0.5)
 
     ReplayText = Subtitle_font.render("Try again (R)....if you dare", 1, White)
     ReplayRect = ReplayText.get_rect(center=(width/2, 470))
@@ -439,9 +439,9 @@ def end(winner=False):
                     if not Sound:
                         BushSound.play()
                     repeat = False
-    reset()
+    await reset()
 
-def reset():
+async def reset():
     global Limbs
     global Guessed
     global Buttons
@@ -456,11 +456,11 @@ def reset():
     
     Limbs = 0
     Guessed = []
-    difficulty=start_screen()
-    Word = random_word(difficulty)
+    difficulty = await start_screen()
+    Word = await random_word(difficulty)
     BushSound.fadeout(500)
 
-    pygame.mixer.music.load("BackgroundMusic_Gameplay.mp3")
+    pygame.mixer.music.load("BackgroundMusic_Gameplay.ogg")
     if not Sound:
         pygame.mixer.music.set_volume(0.5)
         pygame.mixer.music.play(-1, fade_ms=500)
@@ -468,78 +468,90 @@ def reset():
         pygame.mixer.music.set_volume(0)
 
 # Main
-inc = round(width/13)
-for c in range(26):
-    if c < 13:
-        y=40
-        x=25 + (inc*c)
-    else:
-        x=25 + (inc*(c-13))
-        y=85
-    Buttons.append([Grey, x, y, 20, True, 65+c]) 
+async def main():
+    global Buttons
+    global Guessed
+    global Limbs
+    global Word
+    global difficulty
+    global Sound
 
-difficulty = start_screen()
-Word = random_word(difficulty)
-BushSound.fadeout(500)
-Playing = True
+    inc = round(width/13)
+    for c in range(26):
+        if c < 13:
+            y=40
+            x=25 + (inc*c)
+        else:
+            x=25 + (inc*(c-13))
+            y=85
+        Buttons.append([Grey, x, y, 20, True, 65+c]) 
 
-pygame.mixer.music.load("BackgroundMusic_Gameplay.mp3")
-if not Sound:
-    pygame.mixer.music.set_volume(0.5)
-    pygame.mixer.music.play(-1, fade_ms=500)
+    difficulty = await start_screen()
+    Word = await random_word(difficulty)
+    BushSound.fadeout(500)
+    Playing = True
 
-while Playing:     
-    redraw_window()
-    pygame.time.delay(10)
+    pygame.mixer.music.load("BackgroundMusic_Gameplay.ogg")
+    if not Sound:
+        pygame.mixer.music.set_volume(0.5)
+        pygame.mixer.music.play(-1, fade_ms=500)
 
-    for event in pygame.event.get():
-        if event.type == pygame.QUIT:
-            Playing = False
+    while Playing:     
+        await redraw_window()
+        await asyncio.sleep(0.01)
 
-        if event.type == pygame.KEYDOWN:
-            if event.key == pygame.K_ESCAPE:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
                 Playing = False
-            elif pygame.K_a <= event.key <= pygame.K_z:
-                ltr = chr(event.key).upper()
-                if ltr not in Guessed:
-                    Guessed.append(ltr)
-                    Buttons[ord(ltr) - 65][4] = False
-                    if hang(ltr):
-                        if Limbs != 5:
-                            Limbs += 1
-                        else:
-                            Limbs+=1
-                            pygame.mixer.music.fadeout(1000)
-                            if not Sound:
-                                Screech.play()
-                            end()
-                    else:
-                        if spaced_out(Word,Guessed).count("_") == 0:
-                            pygame.mixer.music.fadeout(1000)
-                            end(True)
 
-        if event.type == pygame.MOUSEBUTTONDOWN:
-            clickPos = pygame.mouse.get_pos()
-            if SoundRect.collidepoint(clickPos):
-                volume()
-            else:
-                letter = button_Press(clickPos[0], clickPos[1])
-                if letter != None:
-                    Guessed.append(chr(letter))
-                    Buttons[letter - 65][4] = False
-                    if hang(chr(letter)):
-                        if Limbs != 5:
-                            Limbs += 1
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_ESCAPE:
+                    Playing = False
+                elif pygame.K_a <= event.key <= pygame.K_z:
+                    ltr = chr(event.key).upper()
+                    if ltr not in Guessed:
+                        Guessed.append(ltr)
+                        Buttons[ord(ltr) - 65][4] = False
+                        if hang(ltr):
+                            if Limbs != 5:
+                                Limbs += 1
+                            else:
+                                Limbs+=1
+                                pygame.mixer.music.fadeout(1000)
+                                if not Sound:
+                                    Screech.play()
+                                await end()
                         else:
-                            Limbs+=1
-                            pygame.mixer.music.fadeout(1000)
-                            if not Sound:
-                                Screech.play()
-                            end()
-                    else:
-                        if spaced_out(Word,Guessed).count("_") == 0:
-                            pygame.mixer.music.fadeout(1000)
-                            end(True)
+                            if spaced_out(Word,Guessed).count("_") == 0:
+                                pygame.mixer.music.fadeout(1000)
+                                await end(True)
 
-pygame.mixer.music.stop()
-pygame.quit() 
+            if event.type == pygame.MOUSEBUTTONDOWN:
+                clickPos = pygame.mouse.get_pos()
+                if SoundRect.collidepoint(clickPos):
+                    volume()
+                else:
+                    letter = button_Press(clickPos[0], clickPos[1])
+                    if letter != None:
+                        Guessed.append(chr(letter))
+                        Buttons[letter - 65][4] = False
+                        if hang(chr(letter)):
+                            if Limbs != 5:
+                                Limbs += 1
+                            else:
+                                Limbs+=1
+                                pygame.mixer.music.fadeout(1000)
+                                if not Sound:
+                                    Screech.play()
+                                await end()
+                        else:
+                            if spaced_out(Word,Guessed).count("_") == 0:
+                                pygame.mixer.music.fadeout(1000)
+                                await end(True)
+
+if __name__ == "__main__":
+    try:
+        asyncio.run(main())
+    except SystemExit:
+        pygame.quit()
+        sys.exit()
