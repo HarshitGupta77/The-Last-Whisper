@@ -576,7 +576,11 @@ async def main():
 
 if __name__ == "__main__":
     try:
-        asyncio.run(main())
+        import sys
+        if sys.platform == "emscripten":
+            asyncio.ensure_future(main())
+        else:
+            asyncio.run(main())
     except SystemExit:
         pygame.quit()
         sys.exit()
