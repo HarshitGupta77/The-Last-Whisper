@@ -3,6 +3,7 @@ import sys
 import random
 import asyncio
 import aiohttp
+import js
 
 pygame.init()
 height=500
@@ -227,28 +228,52 @@ async def random_word(level):
            "Medium":"https://random-word-api.vercel.app/api?words=1&length=7",
            "Hard":"https://random-word-api.vercel.app/api?words=1&length=9"}
     
-    try:
-        async with aiohttp.ClientSession() as session:
-            async with session.get(api[level], timeout=5) as resp:
-                data = await resp.json()
-                data = data[0].strip()
-                if data:
-                    return data
-                    
-    except:
-        api_failed = True
-
+    if hasattr(js, "fetch"):
         try:
-            file=open(f"{level}.txt")
-            words=file.readlines()
-            data= random.choice(words).strip()
-            file.close()
-            #print(data)
-            return data
-        
-        except FileNotFoundError:
-            print("Fallback File not found!!")
-            return "Fallback"
+            resp = await js.fetch(api[level])
+            data = await resp.json()
+            data = data[0].strip()
+            if data:
+                return data
+            
+        except:
+            api_failed = True
+
+            try:
+                file=open(f"{level}.txt")
+                words=file.readlines()
+                data= random.choice(words).strip()
+                file.close()
+                #print(data)
+                return data
+            
+            except FileNotFoundError:
+                print("Fallback File not found!!")
+                return "Fallback" 
+            
+    else:
+        try:
+            async with aiohttp.ClientSession() as session:
+                async with session.get(api[level], timeout=5) as resp:
+                    data = await resp.json()
+                    data = data[0].strip()
+                    if data:
+                        return data
+                        
+        except:
+            api_failed = True
+
+            try:
+                file=open(f"{level}.txt")
+                words=file.readlines()
+                data= random.choice(words).strip()
+                file.close()
+                #print(data)
+                return data
+            
+            except FileNotFoundError:
+                print("Fallback File not found!!")
+                return "Fallback" 
 
 def hang(guess):
     global Word
