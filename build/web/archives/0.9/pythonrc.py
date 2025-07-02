@@ -1,4 +1,4 @@
-import asyncio, json, pygame, platform, sys
+import asyncio, json, sys, pygame, __EMSCRIPTEN__ as platform
 
 async def custom_site():
     WIDTH, HEIGHT = platform.window.canvas.width, platform.window.canvas.height
@@ -13,8 +13,8 @@ async def custom_site():
     apk  = "hangman.apk"                 # file lives at site-root
     cfg  = json.dumps({"io":"url","type":"mount",
                        "mount":{"point":"/data/data/hangman","path":"/"}})
-
     track = platform.window.MM.prepare(apk, cfg)
+    
     while not track.ready:
         pg_bar(track.pos / max(track.len,1))
         await asyncio.sleep(0.05)
