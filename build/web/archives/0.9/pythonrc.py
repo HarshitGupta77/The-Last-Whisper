@@ -37,7 +37,9 @@ async def custom_site():
     await shell.runpy("/data/data/hangman/assets/main.py")
 
 # register the coroutine so pythons.js runs it
-import builtins; builtins.custom_site = custom_site
+import builtins, sys 
+builtins.custom_site = custom_site
+sys.modules["__main__"].custom_site = custom_site
 # --- END pygbag custom_site ---------------------------------------------------
 
 # to be able to access aio.cross.simulator
