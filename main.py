@@ -528,7 +528,7 @@ async def main():
 
     while Playing:     
         await redraw_window()
-        await asyncio.sleep(0.01)
+        await asyncio.sleep(0)
 
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -589,4 +589,3 @@ if __name__ == "__main__":
     except SystemExit:
         pygame.quit()
         sys.exit()
-        
