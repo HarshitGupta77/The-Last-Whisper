@@ -250,7 +250,6 @@ async def random_word(level):
                     words=file.readlines()
                     data= random.choice(words).strip()
                     file.close()
-                    #print(data)
                     return data
                 
                 except FileNotFoundError:
