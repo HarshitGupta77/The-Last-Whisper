@@ -22,5 +22,6 @@ async def custom_site():
 
     await shell.runpy("/data/data/hangman/assets/main.py")
 
-# make the coroutine visible to the JS loader
-builtins.custom_site = custom_site
+# register for pythons.js
+import sys
+sys.modules["__main__"].custom_site = custom_site 
