@@ -24,8 +24,9 @@
 ## 🛠 Installation Requirements
 
 - Python 3.x
-- Pygame
-- Requests (for API calls)
+- pygame
+- aiohttp (for API calls)
+- asyncio
 
 ## 💻 How to Play
 
