@@ -170,21 +170,25 @@
         Hard: 'https://random-word-api.vercel.app/api?words=1&length=9'
       };
 
-      try {
-        const res = await fetch(api[level]),
-              resp  = await res.json();
-        return resp[0].trim();
-      } 
-      
-      catch {
-        state.apiFailed = true;
+      while (true) {
         try {
-          const txt = await fetch(`assets/words/${level}.txt`).then(r=>r.text()),
-                data = txt.split('\n').filter(Boolean);
-          return data[Math.floor(Math.random()*data.length)].trim();
+          const res = await fetch(api[level]),
+                resp  = await res.json(),
+                word = resp[0].trim();
+          if (/^[A-Za-z ]+$/.test(word)) {
+            return word;
+          }
         } 
         catch {
-          return 'FALLBACK';
+          state.apiFailed = true;
+          try {
+            const txt = await fetch(`assets/words/${level}.txt`).then(r=>r.text()),
+                  data = txt.split('\n').filter(Boolean);
+            return data[Math.floor(Math.random()*data.length)].trim();
+          } 
+          catch {
+            return 'FALLBACK';
+          }
         }
       }
     }
@@ -317,7 +321,7 @@
     async function startGame() {
       state.scene = 'play';
       state.currentMusic = sounds.Gamemusic;
-      state.word  = await random_word(state.difficulty);
+      state.word = await random_word(state.difficulty);
 
       sounds.Startmusic.stop();
       sounds.bush.fade(1, 0, 1000);
