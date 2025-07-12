@@ -30,7 +30,9 @@
   - aiohttp (for API calls)
 
 - Web Version:
-  - [Start Playing...if you dare!](https://harshitgupta77.github.io/The-Last-Whisper/)\
+  - <a href = "https://harshitgupta77.github.io/The-Last-Whisper/" target = "_blank" rel="noopener noreferrer">
+     Start Playing...if you dare!
+    </a>\
     _(P.S. You have to click on the screen to start the music for the first time.)_
 
 ## 💻 How to Play
