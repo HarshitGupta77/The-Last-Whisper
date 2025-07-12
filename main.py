@@ -2,6 +2,9 @@ import pygame
 import sys
 import random
 import asyncio
+import os
+
+BASE = os.path.join(os.path.dirname(__file__), "assets")
 
 web = False
 if sys.platform != "emscripten":
@@ -17,10 +20,10 @@ window=pygame.display.set_mode((width,height), pygame.SCALED)
 pygame.display.set_caption("The Last Whisper")
 pygame.mixer.init()
 
-BushSound=pygame.mixer.Sound("BushMovement.ogg")
-Screech=pygame.mixer.Sound("Screech1.ogg")
-WrongAns=pygame.mixer.Sound("Wrong.ogg")
-CorrectAns=pygame.mixer.Sound("Correct.ogg")
+BushSound=pygame.mixer.Sound(os.path.join(BASE, "audio", "BushMovement.ogg"))
+Screech=pygame.mixer.Sound(os.path.join(BASE, "audio", "Screech1.ogg"))
+WrongAns=pygame.mixer.Sound(os.path.join(BASE, "audio", "Wrong.ogg"))
+CorrectAns=pygame.mixer.Sound(os.path.join(BASE, "audio", "Correct.ogg"))
 
 Black=(0,0,0)
 White=(255,255,255)
@@ -38,13 +41,13 @@ Text_font=pygame.font.SysFont("arial",45)
 Word=''
 Buttons=[]
 Guessed=[]
-Hangman=[pygame.image.load("hangman1_.png"),
-         pygame.image.load("hangman2_.png"),
-         pygame.image.load("hangman3_.png"),
-         pygame.image.load("hangman4_.png"),
-         pygame.image.load("hangman5_.png"),
-         pygame.image.load("hangman6_.png"),
-         pygame.image.load("hangman7_.png")]
+Hangman=[pygame.image.load(os.path.join(BASE, "images", "hangman1_.png")),
+         pygame.image.load(os.path.join(BASE, "images", "hangman2_.png")),
+         pygame.image.load(os.path.join(BASE, "images", "hangman3_.png")),
+         pygame.image.load(os.path.join(BASE, "images", "hangman4_.png")),
+         pygame.image.load(os.path.join(BASE, "images", "hangman5_.png")),
+         pygame.image.load(os.path.join(BASE, "images", "hangman6_.png")),
+         pygame.image.load(os.path.join(BASE, "images", "hangman7_.png"))]
 Limbs=0
 
 Score=0
@@ -59,22 +62,22 @@ losemsg=["Sanity Drained",
          "Darkness Increased",
          "Echoes Unleashed"]
 
-Background=[pygame.image.load("Background1_.png").convert(),
-            pygame.image.load("Background2.png").convert()]
+Background=[pygame.image.load(os.path.join(BASE, "images", "Background1_.png")).convert(),
+            pygame.image.load(os.path.join(BASE, "images", "Background2.png")).convert()]
 
 api_failed=False
 
 Sound=False
-Mute=pygame.transform.scale(pygame.image.load("Mute_Icon.png"),(32, 32))
-Unmute=pygame.transform.scale(pygame.image.load("Unmute_Icon.png"),(32, 32))
+Mute=pygame.transform.scale(pygame.image.load(os.path.join(BASE, "images", "Mute_Icon.png")),(32, 32))
+Unmute=pygame.transform.scale(pygame.image.load(os.path.join(BASE, "images", "Unmute_Icon.png")),(32, 32))
 SoundRect=pygame.Rect(width - 42, height - 42, 32, 32)
 
-ReplayIcon=pygame.transform.scale(pygame.image.load("ReplayIcon.png"),(42,32))
-ReplayIcon2=pygame.transform.scale(pygame.image.load("ReplayIcon2.png"),(42,32))
+ReplayIcon=pygame.transform.scale(pygame.image.load(os.path.join(BASE, "images", "ReplayIcon.png")),(42,32))
+ReplayIcon2=pygame.transform.scale(pygame.image.load(os.path.join(BASE, "images", "ReplayIcon2.png")),(42,32))
 
 # Functions
 async def start_screen(): 
-    pygame.mixer.music.load("BackgroundMusic_Start.ogg")
+    pygame.mixer.music.load(os.path.join(BASE, "audio", "BackgroundMusic_Start.ogg"))
     if not Sound:
         pygame.mixer.music.set_volume(0.5)
         pygame.mixer.music.play(-1, fade_ms=1000)
@@ -246,7 +249,7 @@ async def random_word(level):
                 api_failed = True
 
                 try:
-                    file=open(f"{level}.txt")
+                    file=open(os.path.join(BASE, "words", f"{level}.txt"))
                     words=file.readlines()
                     data= random.choice(words).strip()
                     file.close()
@@ -269,7 +272,7 @@ async def random_word(level):
             api_failed = True
 
             try:
-                file=open(f"{level}.txt")
+                file=open(os.path.join(BASE, "words", f"{level}.txt"))
                 words=file.readlines()
                 data= random.choice(words).strip()
                 file.close()
@@ -341,7 +344,7 @@ async def end(winner=False):
     window.blit(SoundIcon, SoundRect)
 
     if winner == True:
-        pygame.mixer.music.load("BackgroundMusic_Win.ogg")
+        pygame.mixer.music.load(os.path.join(BASE, "audio", "BackgroundMusic_Win.ogg"))
         if not Sound:
             pygame.mixer.music.set_volume(0.5)
             pygame.mixer.music.play(-1, fade_ms=1000)
@@ -376,7 +379,7 @@ async def end(winner=False):
             await asyncio.sleep(0.5)
 
     else:
-        pygame.mixer.music.load("BackgroundMusic_Lose.ogg")
+        pygame.mixer.music.load(os.path.join(BASE, "audio", "BackgroundMusic_Lose.ogg"))
         if not Sound:
             pygame.mixer.music.set_volume(0.5)
             pygame.mixer.music.play(-1, fade_ms=1000)
@@ -490,7 +493,7 @@ async def reset():
     Word = await random_word(difficulty)
     BushSound.fadeout(500)
 
-    pygame.mixer.music.load("BackgroundMusic_Gameplay.ogg")
+    pygame.mixer.music.load(os.path.join(BASE, "audio", "BackgroundMusic_Gameplay.ogg"))
     if not Sound:
         pygame.mixer.music.set_volume(0.5)
         pygame.mixer.music.play(-1, fade_ms=500)
@@ -521,7 +524,7 @@ async def main():
     BushSound.fadeout(500)
     Playing = True
 
-    pygame.mixer.music.load("BackgroundMusic_Gameplay.ogg")
+    pygame.mixer.music.load(os.path.join(BASE, "audio", "BackgroundMusic_Gameplay.ogg"))
     if not Sound:
         pygame.mixer.music.set_volume(0.5)
         pygame.mixer.music.play(-1, fade_ms=500)

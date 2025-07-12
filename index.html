@@ -1,0 +1,641 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <title> The Last Whisper </title>
+  <style>
+    html, body { 
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      background:#000;
+
+      display: flex;
+      justify-content: center;
+      align-items: stretch;
+    }
+    canvas { 
+      height: 100%;
+      width: auto;
+    }
+  </style>
+</head>
+
+<body>
+  <canvas id="game" width="850" height="500"></canvas>
+  <!-- Howler.js for audio -->
+  <script src="https://cdn.jsdelivr.net/npm/howler@2/dist/howler.min.js"></script>
+
+  <script>
+  (async () => {
+    // Canvas setup
+    const canvas = document.getElementById('game'),
+          ctx = canvas.getContext('2d'),
+          W = 850, H = 500; 
+
+    // Colours
+    const BLACK = '#000', 
+          WHITE = '#fff', 
+          GREY = '#c0c0c0',
+          RED = '#f00', 
+          ORANGE = '#f80', 
+          GREEN = '#0f0';
+
+    // Fonts
+    const MSG_FONT = "21px 'Times New Roman'",
+          SUBTITLE_FONT = "25px 'Times New Roman'",
+          BTN_FONT = "20px Arial",
+          GUESS_FONT = "24px monospace",
+          TEXT_FONT = "45px Arial";
+
+    // Scoring & Messages 
+    const WIN_SCORE = { Easy:300, Medium:600, Hard:1000 },
+          LOSE_SCORE = { Easy:100, Medium:250, Hard:500 },
+          WIN_MSG = ["Sanity Preserved","Soul Fragments Collected","Shadows Repelled","Echoes Silenced"],
+          LOSE_MSG = ["Sanity Drained","Soul Fragments Lost","Darkness Increased","Echoes Unleashed"];
+
+    // Global game state
+    let state = {
+      scene: 'loading',
+      difficulty: null,
+      word: '',
+      guessed: [],
+      limbs: 0,
+      score: 0,
+      buttons: [],
+      muted: false,
+      apiFailed: false,
+      showLoading: false,
+      inputEnabled: true,
+      currentMusic: null
+    };
+
+    // Mouse tracking
+    const mouse = { x:0, y:0 };
+    canvas.addEventListener('mousemove', e => {
+      const r = canvas.getBoundingClientRect();
+      mouse.x = (e.clientX - r.left) * (canvas.width / r.width);
+      mouse.y = (e.clientY - r.top) * (canvas.height / r.height);
+    });
+
+    // Asset paths
+    const IMG_PATH = 'assets/images/',
+          SND_PATH = 'assets/audio/';
+
+    // Utility: draw text
+    function drawText(txt, x, y, font, col, align='center') {
+      ctx.fillStyle = col;
+      ctx.font = font;
+      ctx.textAlign = align;
+      ctx.fillText(txt, x, y);
+    }
+
+    // Enable ctx.roundRect
+    CanvasRenderingContext2D.prototype.roundRect = function(x,y,w,h,r) {
+      this.beginPath();
+      this.moveTo(x+r,y);
+      this.lineTo(x+w-r,y);
+      this.quadraticCurveTo(x+w,y,x+w,y+r);
+      this.lineTo(x+w,y+h-r);
+      this.quadraticCurveTo(x+w,y+h,x+w-r,y+h);
+      this.lineTo(x+r,y+h);
+      this.quadraticCurveTo(x,y+h,x,y+h-r);
+      this.lineTo(x,y+r);
+      this.quadraticCurveTo(x,y,x+r,y);
+      this.closePath();
+    };
+
+    // Load images
+    const images = {};
+    async function loadImages() {
+      const list = [
+        'Background1_.png',
+        'Background2.png',
+        'hangman1_.png',
+        'hangman2_.png',
+        'hangman3_.png',
+        'hangman4_.png',
+        'hangman5_.png',
+        'hangman6_.png',
+        'hangman7_.png',
+        'Mute_Icon.png',
+        'Unmute_Icon.png',
+        'ReplayIcon.png',
+        'ReplayIcon2.png'
+      ];
+
+      await Promise.all(list.map(name => new Promise(res => {
+        const img = new Image();
+        img.src = IMG_PATH + name;
+        img.onload = () => { images[name] = img; res(); };
+        img.onerror= () => { console.warn('Missing image:', name); res(); };
+      })));
+      console.log('Images loaded');
+    }
+
+    // Load sounds
+    const sounds = {};
+    function loadSounds() {
+      function mk(file, opts={}) {
+        opts.src = [SND_PATH + file];
+        return new Howl(opts);
+      }
+      sounds.Startmusic = mk('BackgroundMusic_Start.ogg', {loop:true, volume:0.5});
+      sounds.Gamemusic = mk('BackgroundMusic_Gameplay.ogg', {loop:true, volume:0.5});
+      sounds.Winmusic = mk('BackgroundMusic_Win.ogg', {loop:true, volume:1});
+      sounds.Losemusic = mk('BackgroundMusic_Lose.ogg', {loop:true, volume:0.5});
+      sounds.bush = mk('BushMovement.ogg', {volume:1});
+      sounds.screech = mk('Screech1.ogg', {volume:1});
+      sounds.wrong = mk('Wrong.ogg', {volume:0.7});
+      sounds.correct = mk('Correct.ogg', {volume:0.5});
+    }
+
+    // Initialize alphabet buttons
+    function initButtons() {
+      const inc = Math.round(W/13);
+      for (let i = 0; i < 26; i++) {
+        const x = 25 + inc * (i < 13 ? i : i - 13),
+              y = (i < 13 ? 40 : 85);
+        state.buttons.push({letter:String.fromCharCode(65+i), x, y, r:20, active:true});
+      }
+    }
+
+    // Fetch random word
+    async function random_word(level) {
+      const api = {
+        Easy: 'https://random-word-api.vercel.app/api?words=1&length=5',
+        Medium: 'https://random-word-api.vercel.app/api?words=1&length=7',
+        Hard: 'https://random-word-api.vercel.app/api?words=1&length=9'
+      };
+
+      try {
+        const res = await fetch(api[level]),
+              resp  = await res.json();
+        return resp[0].trim();
+      } 
+      
+      catch {
+        state.apiFailed = true;
+        try {
+          const txt = await fetch(`assets/words/${level}.txt`).then(r=>r.text()),
+                data = txt.split('\n').filter(Boolean);
+          return data[Math.floor(Math.random()*data.length)].trim();
+        } 
+        catch {
+          return 'FALLBACK';
+        }
+      }
+    }
+
+    // Main render loop
+    function loop() {
+        if (state.scene === 'start') start_screen();
+        else if (state.scene === 'play') renderPlay();
+      requestAnimationFrame(loop);
+    }
+
+    // Bootstrap
+    await loadImages();
+          loadSounds();
+          initButtons();
+          state.scene = 'start';
+          state.currentMusic = sounds.Startmusic;
+          sounds.Startmusic.play();
+          loop();
+
+    // ──────────── START SCREEN ────────────
+    function start_screen() {
+      
+      ctx.fillStyle = BLACK; 
+      ctx.fillRect(0,0,W,H);
+      ctx.drawImage(images['Background1_.png'], 0, 0, W, H-50);
+
+      // Difficulty buttons
+      const btnW = 120, btnH = 40, labels=['Easy (E)','Medium (M)','Hard (H)'];
+      for (let i=0; i<3; i++) {
+        const cx = W/6.5, 
+              cy = H/2 + 40 + i*70,
+              L  = cx - btnW/2, 
+              T = cy - btnH/2;
+
+        ctx.fillStyle = GREY;
+        ctx.fillRect(L, T, btnW, btnH);
+
+        // hover
+        if (mouse.x>=L && mouse.x<=L+btnW && mouse.y>=T && mouse.y<=T+btnH) {
+          ctx.strokeStyle = RED; 
+          ctx.lineWidth = 3;
+          ctx.strokeRect(L, T, btnW, btnH);
+        }
+
+        drawText(labels[i], cx, cy+7, BTN_FONT, RED);
+      }
+
+      if (state.showLoading) {
+        drawText(' Loading...', W/1.3, H/2 + 170, SUBTITLE_FONT, RED);
+      }
+
+      // Mute icon & Score
+      const ico = state.muted ? 'Mute_Icon.png':'Unmute_Icon.png';
+      ctx.drawImage(images[ico], W-42, H-42, 32, 32);
+
+      drawText(`Score: ${state.score}`, W-10, 25, SUBTITLE_FONT, WHITE, 'right');
+    }
+
+    // Handle clicks on Start screen
+    canvas.addEventListener('click', async e => {
+      if (!state.inputEnabled) return;
+
+      const rect = canvas.getBoundingClientRect();
+      const x = (e.clientX - rect.left) * (canvas.width / rect.width);
+      const y = (e.clientY - rect.top) * (canvas.height / rect.height);
+
+      // Handle mute 
+      if (x>=W-42 && x<=W-10 && y>=H-42 && y<=H-10) {
+        state.muted = !state.muted;
+        Howler.mute(state.muted);
+        return; 
+      }
+
+      if (state.scene === 'start') {
+        // Difficulty buttons region
+        const btnW=120, btnH=40;
+        for (let i=0; i<3; i++) {
+          const cx=W/6.5, 
+                cy=H/2+40+i*70,
+                L=cx-btnW/2, 
+                T=cy-btnH/2;
+
+          if (x>=L && x<=L+btnW && y>=T && y<=T+btnH) {
+            // User chose difficult
+            state.difficulty = ['Easy','Medium','Hard'][i];
+
+            state.showLoading = true;
+            sounds.Startmusic.fade(0.5, 0, 1000);
+            sounds.bush.volume(1);
+            sounds.bush.play();
+
+            await new Promise(r => setTimeout(r, 1000));
+            state.showLoading = false;
+
+            await startGame();
+            return;
+          }
+        }
+      }
+    });
+
+    // Handle keys E/M/H on start
+    window.addEventListener('keydown', async e => {
+      if (!state.inputEnabled) return;
+      if (e.repeat) return;
+      if (state.scene !== 'start') return;
+
+      const key = e.key.toLowerCase();
+      let diff = null;
+      if (key === 'e') diff = 0;
+      else if (key === 'm') diff = 1;
+      else if (key === 'h') diff = 2;
+      if (diff === null) return;
+
+      state.difficulty = ['Easy','Medium','Hard'][diff];
+
+      state.showLoading = true;
+      sounds.Startmusic.fade(0.5, 0, 1000);
+      sounds.bush.volume(1);
+      sounds.bush.play();
+      
+      await new Promise(r => setTimeout(r, 1000));
+      state.showLoading = false;
+
+      await startGame();
+    });
+
+    // Start the game: fetch word, switch scene, play game music
+    async function startGame() {
+      state.scene = 'play';
+      state.currentMusic = sounds.Gamemusic;
+      state.word  = await random_word(state.difficulty);
+
+      sounds.Startmusic.stop();
+      sounds.bush.fade(1, 0, 1000);
+      sounds.Gamemusic.volume(0.5);
+      sounds.Gamemusic.play();
+      sounds.bush.stop();
+      
+    }
+    
+    // ──────────── GAMEPLAY ────────────
+    function renderPlay() {
+      ctx.drawImage(images['Background2.png'], 0, 0, W, H);
+
+      // Draw letter buttons
+      state.buttons.forEach(b => {
+        if (b.active) {
+          ctx.beginPath(); 
+          ctx.arc(b.x,b.y,b.r,0,2*Math.PI); 
+          ctx.fillStyle=BLACK; 
+          ctx.fill();
+
+          ctx.beginPath(); 
+          ctx.arc(b.x,b.y,b.r-2,0,2*Math.PI); 
+          ctx.fillStyle=GREY; 
+          ctx.fill();
+
+          drawText(b.letter, b.x, b.y+7, BTN_FONT, BLACK);
+        } 
+
+        else {
+          const ok = state.word.toUpperCase().includes(b.letter);
+          if (ok) {
+            ctx.beginPath(); 
+            ctx.arc(b.x,b.y,b.r+2,0,2*Math.PI); 
+            ctx.fillStyle=BLACK; 
+            ctx.fill();
+          }
+          
+          ctx.beginPath(); 
+          ctx.arc(b.x,b.y,b.r,0,2*Math.PI);
+          ctx.fillStyle = ok?GREEN:RED; 
+          ctx.fill();
+
+          drawText(b.letter, b.x, b.y+7, BTN_FONT, ok?BLACK:WHITE);
+        }
+      });
+
+      // Display word with blanks
+      const spaced = [...state.word].map(ch => {
+        if (ch===' ') return ' ';
+        return state.guessed.includes(ch.toUpperCase()) ? ch.toUpperCase()+' ' : '_ ';
+      }).join('');
+      drawText(spaced, W/2, 400, GUESS_FONT, WHITE);
+
+      // Hangman image
+      const pic = images[`hangman${state.limbs+1}_.png`];
+      ctx.drawImage(pic, W/2 - pic.width/2 +20, 150);
+
+      // Mute icon
+      const ico2 = state.muted?'Mute_Icon.png':'Unmute_Icon.png';
+      ctx.drawImage(images[ico2], W-42, H-42, 32, 32);
+
+      // Score
+      drawText(`Score: ${state.score}`, 10, H-10, SUBTITLE_FONT, WHITE, 'left');
+
+      // API fallback message
+      if (state.apiFailed) {
+        drawText(
+          " The summoning failed... an ancient scroll whispered instead. ",
+          W/2, H-50, MSG_FONT, ORANGE
+        );
+      }
+    }
+
+    // Handle clicks in gameplay
+    canvas.addEventListener('click', e => {
+      if (!state.inputEnabled || state.scene !== 'play') return;
+
+      const rect = canvas.getBoundingClientRect();
+      const x = (e.clientX - rect.left) * (canvas.width / rect.width);
+      const y = (e.clientY - rect.top) * (canvas.height / rect.height);
+
+      state.buttons.forEach(b => {
+        const dx=x-b.x, dy=y-b.y;
+        if (b.active && dx*dx+dy*dy <= b.r*b.r) {
+          guessLetter(b.letter);
+        }
+      });
+    });
+
+    // Handle key presses in gameplay
+    window.addEventListener('keydown', e => {
+      if (!state.inputEnabled) return;
+      if (state.scene==='play' && /^[a-z]$/i.test(e.key)) {
+        guessLetter(e.key.toUpperCase());
+      }});
+
+    // Process a guessed letter
+    async function guessLetter(letter) {
+      const b = state.buttons.find(x=>x.letter===letter);
+      if (!b || !b.active) return;
+      b.active = false;
+      state.guessed.push(letter);
+      const miss = !state.word.toUpperCase().includes(letter);
+
+      if (miss) {
+        sounds.wrong.play();
+        if (state.limbs < 6) state.limbs++;
+        if (state.limbs === 6) {
+          sounds.Gamemusic.fade(0.5, 0, 1000);
+          sounds.screech.play();
+          state.score -= LOSE_SCORE[state.difficulty];
+          await new Promise(r => setTimeout(r, 30));
+          end(false);
+        }
+      } 
+
+      else {
+        sounds.correct.play();
+        const done = [...state.word].every(ch => ch===' ' || state.guessed.includes(ch.toUpperCase()));
+        if (done) {
+          sounds.Gamemusic.fade(0.5, 0, 1000);
+          state.score += WIN_SCORE[state.difficulty];
+          await new Promise(r => setTimeout(r, 30));
+          end(true);
+        }
+      }
+    }
+
+    // ──────────── END SCREEN ────────────
+    async function end(didWin) {
+      state.scene = 'end';
+      state.currentMusic = didWin ? sounds.Winmusic : sounds.Losemusic;
+      state.inputEnabled = false;
+
+      const lines = didWin
+        ? ["You broke the curse", "The darkness retreats", "You survive....for now",
+           `+${WIN_SCORE[state.difficulty]} ${WIN_MSG[Math.floor(Math.random()*WIN_MSG.length)]}`]
+        : ["The whisper fades", "and silence falls", "As darkness claims another...",
+           "The cursed word was: ", state.word.toUpperCase(),
+           `-${LOSE_SCORE[state.difficulty]} ${LOSE_MSG[Math.floor(Math.random()*LOSE_MSG.length)]}`];
+
+      await new Promise(r => setTimeout(r, 2000));
+      if (didWin) {
+        sounds.Gamemusic.stop();
+        sounds.Winmusic.volume(1);
+        sounds.Winmusic.play();
+      } else {
+        sounds.Gamemusic.stop();
+        sounds.Losemusic.volume(0.5);
+        sounds.Losemusic.play();
+      }
+
+      // Fade in each line
+      for (let i=0; i<lines.length; i++) {
+        const y = i<3 ? 80 + i*50 : 275 + (i-3)*50;
+        await fadeInLine(lines[i], W/2, y);
+      }
+
+      // Draw score
+      drawText(`Score: ${state.score}`, 10, H-10, SUBTITLE_FONT, WHITE, 'left');
+
+      // Draw replay button
+      state.inputEnabled = true;
+      renderReplay(didWin);
+    }
+
+    // Fade-in helper
+    function fadeInLine(text, x, y) {
+      return new Promise(res => {
+        let alpha = 0;
+
+        function step() {
+          ctx.drawImage(images['Background2.png'], 0, 0, W, H);
+          // previous lines
+          for (let j=0; j<prevLines.length; j++) {
+            const yy = j<3 ? 80 + j*50 : 275 + (j-3)*50;
+            drawText(prevLines[j], W/2, yy, TEXT_FONT, WHITE);
+          }
+
+          // fade current
+          ctx.globalAlpha = alpha/255;
+          drawText(text, x, y, TEXT_FONT, WHITE);
+          ctx.globalAlpha = 1;
+          alpha += 10;
+          if (alpha <= 255) {
+            setTimeout(step, 30);
+          } 
+          else {
+            prevLines.push(text);
+            setTimeout(res, 500);
+          }
+        }
+        step();
+      });
+    }
+    const prevLines = [];
+
+    // Render replay button
+    function renderReplay(win) {
+      const btnText = "Try again (R)....if you dare";
+      ctx.font = SUBTITLE_FONT;
+      const metrics = ctx.measureText(btnText);
+      const btnW = metrics.width + 84; 
+      const btnH = parseInt(SUBTITLE_FONT) + 10;
+      const x = W/2 - btnW/2;
+      const y = H - btnH - 10;
+
+      function drawBtn() {
+        if (state.scene !== 'end') return;
+
+        const hov = 
+          mouse.x >= x&&mouse.x <= x+btnW &&
+          mouse.y >= y&&mouse.y <= y+btnH;
+
+        // Button Rect
+        ctx.fillStyle = BLACK;
+        ctx.beginPath();
+        ctx.roundRect(x, y, btnW, btnH, btnH/2);
+        ctx.fill();
+
+        // Hover
+        ctx.lineWidth = 3;
+        ctx.strokeStyle = hov ? ORANGE : BLACK; 
+        ctx.lineJoin = "round";
+        ctx.lineCap = "round";
+        //ctx.beginPath();
+        //ctx.roundRect(x+1.5, y+1.5, btnW-3, btnH-3, (btnH-3)/2);
+        ctx.stroke();
+
+        // Draw Reload icon inside
+        const icoName = hov ? 'ReplayIcon2.png' : 'ReplayIcon.png';
+        ctx.drawImage(images[icoName], x + 10, y + (btnH-32)/2, 42, 32);
+
+        // text
+        drawText(btnText, x + btnW/2 + 10, y + btnH/2 + 7, SUBTITLE_FONT, hov ? ORANGE:WHITE);
+
+        // Draw sound icon
+        ctx.clearRect(W-42, H-42, 32, 32);
+        const ico3 = state.muted?'Mute_Icon.png':'Unmute_Icon.png';
+        ctx.drawImage(images[ico3], W-42, H-42, 32, 32);
+
+        requestAnimationFrame(drawBtn);
+      }
+      drawBtn();
+    }
+
+    // Click & key for replay 
+    canvas.addEventListener('click', async e => {
+      if (!state.inputEnabled) return;
+      if (state.scene!=='end') return;
+      
+      const rect = canvas.getBoundingClientRect();
+      const x = (e.clientX - rect.left) * (canvas.width / rect.width);
+      const y = (e.clientY - rect.top) * (canvas.height / rect.height);
+
+      // check replay
+      const btnText = "Try again (R)....if you dare";
+      ctx.font = SUBTITLE_FONT;
+      const metrics = ctx.measureText(btnText);
+      const btnW = metrics.width + 84,
+            btnH = parseInt(SUBTITLE_FONT) + 10,
+            bx = W/2 - btnW/2,
+            by = H - btnH - 10;
+
+      if (x>=bx && x<=bx+btnW && y>=by && y<=by+btnH) {
+        // fade out end music, play bush, then reset
+        sounds.Winmusic.fade(0.5,0,1000);
+        sounds.Losemusic.fade(0.5,0,1000);
+        sounds.bush.volume(1);
+        sounds.bush.play();
+        
+        await new Promise(r=>setTimeout(r,1000));
+        resetToStart();
+      }
+    });
+
+    window.addEventListener('keydown', async e => {
+      if (!state.inputEnabled) return;
+      
+      if (state.scene==='end' && /[rR]/.test(e.key)) {
+        sounds.Winmusic.fade(0.5,0,1000);
+        sounds.Losemusic.fade(0.5,0,1000);
+        sounds.bush.volume(1);
+        sounds.bush.play();
+        
+        await new Promise(r=>setTimeout(r,1000));
+        resetToStart();
+      }
+
+      // allow difficulty reselect
+      if (state.scene==='start' && /[eEmMhH]/.test(e.key)) {
+        canvas.click();
+      }
+    });
+
+    // Reset to start
+    function resetToStart() {
+      state.scene = 'start';
+      state.difficulty = null;
+      state.word = '';
+      state.guessed = [];
+      state.limbs = 0;
+      state.apiFailed = false;
+      state.showLoading = false;
+      state.buttons.forEach(b=>b.active=true);
+      prevLines.length = 0;
+      state.currentMusic = sounds.Startmusic;
+
+      sounds.bush.fade(1,0,1000);
+      sounds.bush.stop();
+      sounds.Winmusic.stop();
+      sounds.Losemusic.stop();
+      sounds.Startmusic.play();
+      sounds.Startmusic.fade(0,0.5,1500);
+    }
+  })();
+
+  </script>
+</body>
+</html>
