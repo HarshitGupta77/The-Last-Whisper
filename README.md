@@ -31,7 +31,7 @@
 
 - Web Version:
   - [Start Playing...if you dare!](https://harshitgupta77.github.io/The-Last-Whisper/)
-  - _(P.S. You have to click on the screen to start the music for the first time.)_
+    _(P.S. You have to click on the screen to start the music for the first time.)_
 
 ## 💻 How to Play
 
