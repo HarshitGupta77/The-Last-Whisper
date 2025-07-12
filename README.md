@@ -1,4 +1,4 @@
-# 👻 The Last Whisper
+# ☠ The Last Whisper
 
 **In the dead of the night, a whisper calls your name,**\
 **a secret word that holds your fate.**\
@@ -23,10 +23,15 @@
 
 ## 🛠 Installation Requirements
 
-- Python 3.x
-- pygame
-- aiohttp (for API calls)
-- asyncio
+- Python Version:
+  - Python 3.x
+  - pygame
+  - asyncio
+  - aiohttp (for API calls)
+
+- Web Version:
+  - [Start Playing...if you dare!](https://harshitgupta77.github.io/The-Last-Whisper/)
+  - _(P.S. You have to click on the screen to start the music for the first time.)_
 
 ## 💻 How to Play
 
@@ -45,4 +50,4 @@
 
 ---
 
-**💀 Enjoy surviving the whispers... if you dare.**
+**💀 Enjoy surviving the whispers.**
