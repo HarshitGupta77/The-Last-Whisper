@@ -7,7 +7,7 @@
 
 ## 📖 About
 
-**The Last Whisper** is an immersive Hangman-style horror adventure game built with Python and Pygame. Embark on a mysterious journey which tests your vocabulary and resilience as you attempt to escape the darkness by uncovering cursed words, all set against a haunting backdrop with atmospheric sounds and visuals.
+**The Last Whisper** is an immersive Hangman-style horror adventure game built with Python and Pygame (And JavaScript for the web version). Embark on a mysterious journey which tests your vocabulary and resilience as you attempt to escape the darkness by uncovering cursed words, all set against a haunting backdrop with atmospheric sounds and visuals.
 
 ## 🔥 Features
 
