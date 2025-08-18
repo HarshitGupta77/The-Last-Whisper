@@ -50,11 +50,12 @@
           GUESS_FONT = "24px monospace",
           TEXT_FONT = "45px Arial";
 
-    // Scoring & Messages 
+    // Scoring, Hints & Messages 
     const WIN_SCORE = { Easy:300, Medium:600, Hard:1000 },
           LOSE_SCORE = { Easy:100, Medium:250, Hard:500 },
           WIN_MSG = ["Sanity Preserved","Soul Fragments Collected","Shadows Repelled","Echoes Silenced"],
-          LOSE_MSG = ["Sanity Drained","Soul Fragments Lost","Darkness Increased","Echoes Unleashed"];
+          LOSE_MSG = ["Sanity Drained","Soul Fragments Lost","Darkness Increased","Echoes Unleashed"],
+          HINT_COST = { Easy:50, Medium:100, Hard:200};
 
     // Global game state
     let state = {
@@ -376,6 +377,35 @@
       }).join('');
       drawText(spaced, W/2, 400, GUESS_FONT, WHITE);
 
+      // Draw hint button
+      const cost = HINT_COST[state.difficulty] ?? 0,
+            hintEnabled = (state.score >= cost) && spaced.includes('_');
+
+      const label = `Hint (-${cost})`;
+      ctx.font = BTN_FONT;
+      const textW = ctx.measureText(label).width,
+            btnW = textW + 28,
+            btnH = 34,
+            btnX = W/2 - btnW/2 - 8,
+            btnY = H - 70;
+
+      state.hintBtn = {btnX, btnY, btnW, btnH, hintEnabled};
+
+      const hov = 
+        mouse.x >= btnX && mouse.x <= btnX + btnW &&
+        mouse.y >= btnY && mouse.y <= btnY + btnH;
+
+      ctx.beginPath();
+      ctx.roundRect(btnX, btnY, btnW, btnH, btnH/2);
+      ctx.fillStyle = hintEnabled ? BLACK : '#555' ;
+      ctx.fill();
+
+      ctx.lineWidth = 3;
+      ctx.strokeStyle = hintEnabled ? (hov ? ORANGE : BLACK) : '#555';
+      ctx.stroke();
+
+      drawText(label, btnX + btnW/2, btnY + btnH/2 + 7, BTN_FONT, hintEnabled ? (hov ? ORANGE : WHITE) : '#aaa');
+
       // Hangman image
       const pic = images[`hangman${state.limbs+1}_.png`];
       ctx.drawImage(pic, W/2 - pic.width/2 +20, 150);
@@ -403,6 +433,23 @@
       const rect = canvas.getBoundingClientRect();
       const x = (e.clientX - rect.left) * (canvas.width / rect.width);
       const y = (e.clientY - rect.top) * (canvas.height / rect.height);
+
+      const {btnX, btnY, btnW, btnH, hintEnabled} = state.hintBtn || {};
+      if (hintEnabled && 
+          x >= btnX && x <= btnX + btnW && 
+          y >= btnY && y <= btnY + btnH ) {
+        
+        const unrevealed = [...new Set(
+          [...state.word.toUpperCase()].filter(ch => ch !== ' ' && !state.guessed.includes(ch))
+        )];
+
+        if (unrevealed.length) {
+          const letter = unrevealed[Math.floor(Math.random() * unrevealed.length)];
+          state.score -= HINT_COST[state.difficulty];
+          guessLetter(letter);
+        }
+        return;
+      }
 
       state.buttons.forEach(b => {
         const dx=x-b.x, dy=y-b.y;
