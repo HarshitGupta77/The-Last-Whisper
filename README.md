@@ -15,6 +15,7 @@
 - **🎬 Dynamic Visuals:** Multiple backgrounds and animated hangman limbs.
 - **🔊 Sound Effects & Music:** Immersive audio and sound effects for a spine-chilling experience.
 - **🎯 Difficulty Levels:** Choose from Easy, Medium or Hard levels with varying word lengths and scores.
+- **💡 Hint System:** Use your score to buy hints when stuck (Only in web version for now).
 - **🌍 API Integration:** Fetches random words from an online API, with fallback options.
 - **👤 User Interface:** Intuitive buttons, mute/unmute functionality, and responsive controls.
 - **📜 Endings:** Multiple win/lose messages with animated feedback.
@@ -31,7 +32,7 @@
 
 - **Web Version:**
     - [Start Playing...if you dare!](https://harshitgupta77.github.io/The-Last-Whisper/)\
-      _(P.S. You have to click on the screen to start the music for the first time.)_
+      _(P.S. You might have to click on the screen once to start the music for the first time.)_
 
 ## 💻 How to Play
 
