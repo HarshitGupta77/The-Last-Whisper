@@ -38,7 +38,7 @@
 
 1. **Start Screen:** Select your difficulty level by pressing E (Easy), M (Medium), or H (Hard).
 2. **Gameplay:** Guess the hidden word by pressing letter keys or clicking on the on-screen alphabet.
-3. **Avoid the Hangman:** Too many wrong guesses and the darkness consumes you.
+3. **Avoid the Hangman:** Too many wrong guesses and the darkness consumes you. Use your points to buy hints and save yourself.
 4. **Win or Lose:** Successfully guess the word to preserve your sanity, or succumb to the shadows.
 5. **Replay:** After each game, choose to try again or exit.
 
